@@ -240,12 +240,12 @@ const ResumePreview = ({ data, sectionOrder, config }) => {
   const { fontFamily, fontSize, margins, lineHeight, sectionSpacing, bulletSpacing, colors } = config;
 
   const styles = {
-    page: { fontFamily, fontSize: `${fontSize.body}pt`, lineHeight, color: colors.text, background: '#fff', padding: `${margins}in`, width: '8.5in', minHeight: '11in', boxSizing: 'border-box' },
-    header: { textAlign: 'center', marginBottom: `${sectionSpacing}px`, paddingBottom: '8px', borderBottom: `1px solid ${colors.border}` },
+    page: { fontFamily, fontSize: `${fontSize.body}pt`, lineHeight, color: colors.text, background: '#fff', padding: `${margins}in`, width: '8.5in', minHeight: '11in', boxSizing: 'border-box', paddingBottom: `${margins}in` },
+    header: { textAlign: 'center', marginBottom: `${sectionSpacing}px` },
     name: { fontSize: `${fontSize.name}pt`, fontWeight: 'bold', marginBottom: '4px' },
     contact: { fontSize: `${fontSize.contact}pt` },
     section: { marginBottom: `${sectionSpacing}px` },
-    sectionTitle: { fontSize: `${fontSize.sectionTitle}pt`, fontWeight: 'bold', borderBottom: `1px solid ${colors.border}`, marginBottom: '6px', textTransform: 'uppercase' },
+    sectionTitle: { fontSize: `${fontSize.sectionTitle}pt`, fontWeight: 'bold', borderBottom: `1px solid ${colors.border}`, marginBottom: '6px' },
     row: { display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' },
     bold: { fontWeight: 'bold', fontSize: `${fontSize.subheader}pt` },
     italic: { fontStyle: 'italic', fontSize: `${fontSize.subheader}pt` },
@@ -293,14 +293,20 @@ const ResumePreview = ({ data, sectionOrder, config }) => {
     }
   };
 
-  const links = [personal_info?.linkedin && 'LinkedIn', personal_info?.github && 'GitHub', personal_info?.portfolio && 'Portfolio'].filter(Boolean);
+  const links = [
+    personal_info?.linkedin && { label: 'LinkedIn', url: personal_info.linkedin },
+    personal_info?.github && { label: 'GitHub', url: personal_info.github },
+    personal_info?.portfolio && { label: 'Portfolio', url: personal_info.portfolio }
+  ].filter(Boolean);
 
   return (
     <div id="resume-content" style={styles.page}>
       <div style={styles.header}>
         <div style={styles.name}>{personal_info?.name}</div>
         <div style={styles.contact}>{[personal_info?.email, personal_info?.phone, personal_info?.location].filter(Boolean).join(' | ')}</div>
-        {links.length > 0 && <div style={styles.contact}>{links.join(' | ')}</div>}
+        {links.length > 0 && <div style={styles.contact}>{links.map((l, i) => (
+          <span key={l.label}>{i > 0 && ' | '}<a href={l.url.startsWith('http') ? l.url : `https://${l.url}`} target="_blank" rel="noreferrer" style={{ color: colors.text, textDecoration: 'underline' }}>{l.label}</a></span>
+        ))}</div>}
       </div>
       {sectionOrder.map(renderSection)}
     </div>
@@ -311,16 +317,21 @@ const ResumePreview = ({ data, sectionOrder, config }) => {
 const generatePrintHTML = (data, sectionOrder, config) => {
   const { personal_info, summary, education, technical_skills, work_experience, projects, achievements } = data;
   const { fontFamily, fontSize, margins, lineHeight, sectionSpacing, bulletSpacing, colors } = config;
-  const links = [personal_info?.linkedin && 'LinkedIn', personal_info?.github && 'GitHub', personal_info?.portfolio && 'Portfolio'].filter(Boolean);
+  const links = [
+    personal_info?.linkedin && { label: 'LinkedIn', url: personal_info.linkedin },
+    personal_info?.github && { label: 'GitHub', url: personal_info.github },
+    personal_info?.portfolio && { label: 'Portfolio', url: personal_info.portfolio }
+  ].filter(Boolean);
+  const linksHTML = links.map(l => `<a href="${l.url.startsWith('http') ? l.url : `https://${l.url}`}" target="_blank">${l.label}</a>`).join(' | ');
 
   const renderSection = id => {
     switch (id) {
-      case 'summary': return summary ? `<div class="section"><div class="section-title">PROFESSIONAL SUMMARY</div><p>${summary}</p></div>` : '';
-      case 'technical_skills': if (!technical_skills) return ''; return `<div class="section"><div class="section-title">TECHNICAL SKILLS</div>${Object.entries(technical_skills).filter(([_, s]) => s?.length > 0).map(([c, s]) => `<div><strong>${c.replace(/_/g, ' ')}:</strong> ${s.join(', ')}</div>`).join('')}</div>`;
-      case 'work_experience': if (!work_experience?.length) return ''; return `<div class="section"><div class="section-title">WORK EXPERIENCE</div>${work_experience.map(j => `<div class="entry"><div class="row"><span class="bold">${j.company}</span><span class="bold">${j.dates}</span></div><div class="row"><span class="italic">${j.job_title}</span><span class="italic">${j.location}</span></div><ul>${j.bullets?.map(b => `<li>${b}</li>`).join('')}</ul></div>`).join('')}</div>`;
-      case 'projects': if (!projects?.length) return ''; return `<div class="section"><div class="section-title">PROJECTS</div>${projects.map(p => `<div class="entry"><div class="row"><span class="bold">${p.name}${p.link ? ` | ${p.link}` : ''}</span><span class="bold">${p.dates}</span></div>${p.associated_with ? `<div class="italic">${p.associated_with}</div>` : ''}<ul>${p.bullets?.map(b => `<li>${b}</li>`).join('')}</ul></div>`).join('')}</div>`;
-      case 'education': if (!education?.length) return ''; return `<div class="section"><div class="section-title">EDUCATION</div>${education.map(e => `<div class="entry"><div class="row"><span class="bold">${e.institution}</span><span class="bold">${e.graduation_date}</span></div><div class="row"><span class="italic">${e.degree}</span><span class="italic">${e.location}</span></div>${e.gpa || e.honors?.length ? `<div>${e.gpa ? `<strong>GPA:</strong> ${e.gpa}` : ''}${e.gpa && e.honors?.length ? ' | ' : ''}${e.honors?.length ? `<strong>Honors:</strong> ${e.honors.join(', ')}` : ''}</div>` : ''}</div>`).join('')}</div>`;
-      case 'achievements': if (!achievements?.length) return ''; return `<div class="section"><div class="section-title">ACHIEVEMENTS</div><ul>${achievements.map(a => `<li>${a}</li>`).join('')}</ul></div>`;
+      case 'summary': return summary ? `<div class="section"><div class="section-title">Professional Summary</div><p>${summary}</p></div>` : '';
+      case 'technical_skills': if (!technical_skills) return ''; return `<div class="section"><div class="section-title">Technical Skills</div>${Object.entries(technical_skills).filter(([_, s]) => s?.length > 0).map(([c, s]) => `<div><strong>${c.replace(/_/g, ' ')}:</strong> ${s.join(', ')}</div>`).join('')}</div>`;
+      case 'work_experience': if (!work_experience?.length) return ''; return `<div class="section"><div class="section-title">Work Experience</div>${work_experience.map(j => `<div class="entry"><div class="row"><span class="bold">${j.company}</span><span class="bold">${j.dates}</span></div><div class="row"><span class="italic">${j.job_title}</span><span class="italic">${j.location}</span></div><ul>${j.bullets?.map(b => `<li>${b}</li>`).join('')}</ul></div>`).join('')}</div>`;
+      case 'projects': if (!projects?.length) return ''; return `<div class="section"><div class="section-title">Projects</div>${projects.map(p => `<div class="entry"><div class="row"><span class="bold">${p.name}${p.link ? ` | ${p.link}` : ''}</span><span class="bold">${p.dates}</span></div>${p.associated_with ? `<div class="italic">${p.associated_with}</div>` : ''}<ul>${p.bullets?.map(b => `<li>${b}</li>`).join('')}</ul></div>`).join('')}</div>`;
+      case 'education': if (!education?.length) return ''; return `<div class="section"><div class="section-title">Education</div>${education.map(e => `<div class="entry"><div class="row"><span class="bold">${e.institution}</span><span class="bold">${e.graduation_date}</span></div><div class="row"><span class="italic">${e.degree}</span><span class="italic">${e.location}</span></div>${e.gpa || e.honors?.length ? `<div>${e.gpa ? `<strong>GPA:</strong> ${e.gpa}` : ''}${e.gpa && e.honors?.length ? ' | ' : ''}${e.honors?.length ? `<strong>Honors:</strong> ${e.honors.join(', ')}` : ''}</div>` : ''}</div>`).join('')}</div>`;
+      case 'achievements': if (!achievements?.length) return ''; return `<div class="section"><div class="section-title">Achievements</div><ul>${achievements.map(a => `<li>${a}</li>`).join('')}</ul></div>`;
       default: return '';
     }
   };
@@ -330,11 +341,12 @@ const generatePrintHTML = (data, sectionOrder, config) => {
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:${fontFamily},sans-serif;font-size:${fontSize.body}pt;line-height:${lineHeight};color:${colors.text};-webkit-print-color-adjust:exact}
 .page{padding:${margins}in;max-width:8.5in;margin:0 auto}
-.header{text-align:center;margin-bottom:${sectionSpacing}px;padding-bottom:8px;border-bottom:1px solid ${colors.border}}
+.header{text-align:center;margin-bottom:${sectionSpacing}px}
 .name{font-size:${fontSize.name}pt;font-weight:bold;margin-bottom:4px}
 .contact{font-size:${fontSize.contact}pt}
+.contact a{color:${colors.text};text-decoration:underline}
 .section{margin-bottom:${sectionSpacing}px}
-.section-title{font-size:${fontSize.sectionTitle}pt;font-weight:bold;border-bottom:1px solid ${colors.border};margin-bottom:6px;text-transform:uppercase}
+.section-title{font-size:${fontSize.sectionTitle}pt;font-weight:bold;border-bottom:1px solid ${colors.border};margin-bottom:6px}
 .entry{margin-bottom:10px}
 .row{display:flex;justify-content:space-between;align-items:baseline}
 .bold{font-weight:bold;font-size:${fontSize.subheader}pt}
@@ -343,7 +355,7 @@ ul{margin-left:18px;margin-top:4px;list-style-type:disc}
 li{margin-bottom:${bulletSpacing}px}
 strong{text-transform:capitalize}
 </style></head><body><div class="page">
-<div class="header"><div class="name">${personal_info?.name || ''}</div><div class="contact">${[personal_info?.email, personal_info?.phone, personal_info?.location].filter(Boolean).join(' | ')}</div>${links.length ? `<div class="contact">${links.join(' | ')}</div>` : ''}</div>
+<div class="header"><div class="name">${personal_info?.name || ''}</div><div class="contact">${[personal_info?.email, personal_info?.phone, personal_info?.location].filter(Boolean).join(' | ')}</div>${linksHTML ? `<div class="contact">${linksHTML}</div>` : ''}</div>
 ${sectionOrder.map(renderSection).join('')}
 </div></body></html>`;
 };
