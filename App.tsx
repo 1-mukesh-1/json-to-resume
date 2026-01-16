@@ -1,202 +1,165 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { SAMPLE_RESUME } from './constants';
 import ResumePreview from './components/ResumePreview';
-import JsonEditor from './components/JsonEditor';
-import { generateResumeWithAI, improveSummaryWithAI } from './services/geminiService';
 import { ResumeData } from './types';
+import { generateResumeWithAI } from './services/geminiService';
 
-const App: React.FC = () => {
+export default function App() {
+  const [jsonInput, setJsonInput] = useState(JSON.stringify(SAMPLE_RESUME, null, 2));
   const [resumeData, setResumeData] = useState<ResumeData>(SAMPLE_RESUME);
-  const [jsonString, setJsonString] = useState<string>(JSON.stringify(SAMPLE_RESUME, null, 2));
-  const [jsonError, setJsonError] = useState<string>('');
+  const [error, setError] = useState('');
+  const [view, setView] = useState<'editor' | 'preview'>('preview');
   const [isGenerating, setIsGenerating] = useState(false);
-  const [showPromptModal, setShowPromptModal] = useState(false);
-  const [promptInput, setPromptInput] = useState('');
-  const [viewMode, setViewMode] = useState<'split' | 'edit' | 'preview'>('split');
 
-  // Sync JSON string changes to Resume Data Object
-  const handleJsonChange = (newJson: string) => {
-    setJsonString(newJson);
+  const handleJsonChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setJsonInput(e.target.value);
+    setError('');
+  };
+
+  const parseJson = () => {
     try {
-      const parsed = JSON.parse(newJson);
+      const parsed = JSON.parse(jsonInput);
       setResumeData(parsed);
-      setJsonError('');
+      setError('');
+      setView('preview');
     } catch (e) {
-      if (e instanceof Error) {
-        setJsonError(e.message);
-      } else {
-        setJsonError('Invalid JSON');
-      }
+        if (e instanceof Error) {
+            setError('Invalid JSON: ' + e.message);
+        } else {
+            setError('Invalid JSON');
+        }
     }
   };
 
   const handlePrint = () => {
-    window.print();
+    const printContent = document.getElementById('resume-content');
+    if (!printContent) return;
+    
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>${resumeData?.personal_info?.name || 'Resume'}</title>
+        <style>
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body { font-family: Arial, sans-serif; font-size: 11pt; line-height: 1.4; color: #000; }
+          .resume { padding: 0.5in; max-width: 8.5in; margin: 0 auto; }
+          .header { text-align: center; margin-bottom: 16px; border-bottom: 1px solid #ccc; padding-bottom: 12px; }
+          .header h1 { font-size: 24px; font-weight: bold; margin-bottom: 4px; }
+          .header p { font-size: 11pt; }
+          .section { margin-bottom: 16px; }
+          .section-title { font-size: 11pt; font-weight: bold; text-transform: uppercase; border-bottom: 1px solid #666; margin-bottom: 8px; }
+          .job, .project, .edu { margin-bottom: 12px; }
+          .job-header, .project-header, .edu-header { display: flex; justify-content: space-between; align-items: flex-start; }
+          .job-header span, .project-header span, .edu-header span { font-size: 11pt; }
+          .bold { font-weight: 600; }
+          ul { margin-left: 20px; margin-top: 4px; }
+          li { font-size: 11pt; margin-bottom: 2px; }
+          .skills p { font-size: 11pt; }
+          @media print {
+            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .resume { padding: 0; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="resume">
+          ${printContent.innerHTML}
+        </div>
+      </body>
+      </html>
+    `);
+    printWindow.document.close();
+    setTimeout(() => {
+      printWindow.print();
+    }, 250);
   };
 
-  const handleGenerateResume = async () => {
-    if (!promptInput.trim()) return;
+  const handleGenerateAI = async () => {
+    const role = prompt("Enter a job title to generate a resume for (e.g. 'Senior React Developer'):");
+    if (!role) return;
+    
     setIsGenerating(true);
     try {
-      const newData = await generateResumeWithAI(promptInput);
+      const newData = await generateResumeWithAI(role);
       setResumeData(newData);
-      setJsonString(JSON.stringify(newData, null, 2));
-      setShowPromptModal(false);
-      setPromptInput('');
+      setJsonInput(JSON.stringify(newData, null, 2));
+      // Optional: Don't auto-switch to preview so they can see the JSON first, or switch if preferred.
+      // setView('preview'); 
     } catch (error) {
-      alert("Failed to generate resume. Please check your API Key and try again.");
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
-  const handleImproveSummary = async () => {
-    if (!resumeData.summary) return;
-    setIsGenerating(true);
-    try {
-      const newSummary = await improveSummaryWithAI(resumeData.summary);
-      const newData = { ...resumeData, summary: newSummary };
-      setResumeData(newData);
-      setJsonString(JSON.stringify(newData, null, 2));
-    } catch (error) {
-      alert("Failed to improve summary.");
+      alert("Failed to generate resume. Please check your API Key.");
     } finally {
       setIsGenerating(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex flex-col h-screen">
-      {/* Navbar - Hidden on print */}
-      <header className="bg-white border-b border-gray-200 px-6 py-3 flex justify-between items-center no-print shrink-0 z-10">
-        <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-lg">R</div>
-            <h1 className="text-xl font-bold text-gray-800 tracking-tight">Resume<span className="text-blue-600">Builder</span></h1>
-        </div>
-
-        <div className="flex items-center gap-4">
-             {/* View Toggles for Mobile/Tablet */}
-             <div className="hidden md:flex bg-gray-100 rounded-lg p-1">
-                <button 
-                    onClick={() => setViewMode('edit')}
-                    className={`px-3 py-1.5 text-sm rounded-md transition-colors ${viewMode === 'edit' ? 'bg-white shadow-sm text-blue-600 font-medium' : 'text-gray-500 hover:text-gray-700'}`}
-                >
-                    Edit
-                </button>
-                <button 
-                    onClick={() => setViewMode('split')}
-                    className={`px-3 py-1.5 text-sm rounded-md transition-colors ${viewMode === 'split' ? 'bg-white shadow-sm text-blue-600 font-medium' : 'text-gray-500 hover:text-gray-700'}`}
-                >
-                    Split
-                </button>
-                <button 
-                    onClick={() => setViewMode('preview')}
-                    className={`px-3 py-1.5 text-sm rounded-md transition-colors ${viewMode === 'preview' ? 'bg-white shadow-sm text-blue-600 font-medium' : 'text-gray-500 hover:text-gray-700'}`}
-                >
-                    Preview
-                </button>
-            </div>
-
-            <div className="h-6 w-px bg-gray-300 mx-2 hidden md:block"></div>
-
-            <button 
-                onClick={handleImproveSummary} 
-                disabled={isGenerating}
-                className="text-sm font-medium text-purple-600 hover:text-purple-700 hover:bg-purple-50 px-3 py-2 rounded-md transition-colors flex items-center gap-2"
+    <div className="min-h-screen bg-gray-100 flex flex-col h-screen">
+      {/* Header */}
+      <div className="bg-gray-800 text-white p-4 shrink-0">
+        <div className="max-w-6xl mx-auto flex justify-between items-center">
+          <h1 className="text-xl font-bold">ATS Resume Generator</h1>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setView('editor')}
+              className={`px-4 py-2 rounded ${view === 'editor' ? 'bg-blue-600' : 'bg-gray-600 hover:bg-gray-500'}`}
             >
-                {isGenerating ? 'Wait...' : '✨ Enhance Summary'}
+              Edit JSON
             </button>
-            
-            <button 
-                onClick={() => setShowPromptModal(true)}
-                className="text-sm font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-100 px-3 py-2 rounded-md transition-colors"
+            <button
+              onClick={() => setView('preview')}
+              className={`px-4 py-2 rounded ${view === 'preview' ? 'bg-blue-600' : 'bg-gray-600 hover:bg-gray-500'}`}
             >
-                Generate New
+              Preview
             </button>
-            <button 
-                onClick={handlePrint}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium text-sm transition-colors shadow-sm flex items-center gap-2"
+            <button
+              onClick={handlePrint}
+              className="px-4 py-2 bg-green-600 hover:bg-green-500 rounded font-semibold"
             >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0110.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0l.229 2.523a1.125 1.125 0 01-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0021 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 00-1.913-.247M6.34 18H5.25A2.25 2.25 0 013 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 011.913-.247m10.5 0a48.536 48.536 0 00-10.5 0m10.5 0V3.375c0-.621-.504-1.125-1.125-1.125h-8.25c-.621 0-1.125.504-1.125 1.125v3.659M18 10.5h.008v.008H18V10.5zm-3 0h.008v.008H15V10.5z" />
-                </svg>
-                PDF / Print
+              Generate PDF
             </button>
+          </div>
         </div>
-      </header>
+      </div>
 
-      {/* Main Content Area */}
-      <main className="flex-1 overflow-hidden bg-gray-100 flex relative">
-        {/* Editor Panel */}
-        <div className={`
-            flex-1 p-4 h-full overflow-hidden transition-all duration-300 no-print
-            ${viewMode === 'preview' ? 'hidden' : 'block'}
-            ${viewMode === 'split' ? 'w-1/2 max-w-[45%]' : 'w-full'}
-        `}>
-             <JsonEditor 
-                value={jsonString} 
-                onChange={handleJsonChange} 
-                error={jsonError}
-             />
-        </div>
-
-        {/* Preview Panel */}
-        <div className={`
-            flex-1 h-full overflow-auto bg-gray-200/50 p-8 transition-all duration-300 print-container
-            ${viewMode === 'edit' ? 'hidden' : 'block'}
-            flex justify-center
-        `}>
-            {/* The resume itself, scaled visually if needed in split view but full size in print */}
-            <div className={`transform origin-top transition-transform ${viewMode === 'split' ? 'scale-[0.85]' : 'scale-100'}`}>
-                <ResumePreview data={resumeData} />
+      <div className="max-w-6xl mx-auto p-4 w-full flex-1 overflow-hidden">
+        {view === 'editor' ? (
+          <div className="h-full flex flex-col">
+            <div className="flex justify-between items-center mb-2">
+              <p className="text-sm text-gray-600">Paste your resume JSON below:</p>
+              <div className="flex gap-2">
+                 <button
+                    onClick={handleGenerateAI}
+                    disabled={isGenerating}
+                    className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-500 text-sm disabled:opacity-50"
+                  >
+                    {isGenerating ? 'Generating...' : 'Generate with AI'}
+                  </button>
+                  <button
+                    onClick={parseJson}
+                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-500 text-sm"
+                  >
+                    Apply Changes
+                  </button>
+              </div>
             </div>
-        </div>
-      </main>
-
-      {/* AI Prompt Modal */}
-      {showPromptModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 no-print">
-            <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
-                <h3 className="text-lg font-bold mb-2">Generate Resume with AI</h3>
-                <p className="text-gray-600 text-sm mb-4">Enter a job title or short description (e.g., "Senior Marketing Manager" or "React Developer for FinTech").</p>
-                
-                <input 
-                    type="text" 
-                    value={promptInput}
-                    onChange={(e) => setPromptInput(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2 mb-4 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                    placeholder="e.g. Full Stack Engineer..."
-                    autoFocus
-                />
-
-                <div className="flex justify-end gap-2">
-                    <button 
-                        onClick={() => setShowPromptModal(false)}
-                        className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg text-sm font-medium"
-                    >
-                        Cancel
-                    </button>
-                    <button 
-                        onClick={handleGenerateResume}
-                        disabled={isGenerating || !promptInput}
-                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                    >
-                         {isGenerating ? (
-                             <>
-                                <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                </svg>
-                                Generating...
-                             </>
-                         ) : 'Generate'}
-                    </button>
-                </div>
-            </div>
-        </div>
-      )}
+            {error && <p className="text-red-600 text-sm mb-2">{error}</p>}
+            <textarea
+              value={jsonInput}
+              onChange={handleJsonChange}
+              className="w-full flex-1 p-4 font-mono text-sm border rounded bg-white resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+              spellCheck={false}
+            />
+          </div>
+        ) : (
+          <div className="bg-white shadow-lg h-full overflow-auto p-8 rounded">
+            <ResumePreview data={resumeData} />
+          </div>
+        )}
+      </div>
     </div>
   );
-};
-
-export default App;
+}
