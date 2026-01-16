@@ -15,13 +15,12 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({ data, sectionOrder }) => 
 
   const { personal_info, summary, education, technical_skills, work_experience, projects, achievements } = data;
 
-  // Renderers for each section type
   const renderSection = (sectionName: string) => {
     switch (sectionName) {
       case 'summary':
         if (!summary) return null;
         return (
-          <div key="summary" className="mb-4">
+          <div key="summary" className="resume-section mb-4">
             <h2 className="text-[12pt] font-bold uppercase border-b border-black mb-2 font-serif text-black tracking-wider">Professional Summary</h2>
             <p className="text-[10pt] leading-relaxed text-black font-serif">{summary}</p>
           </div>
@@ -30,7 +29,7 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({ data, sectionOrder }) => 
       case 'technical_skills':
         if (!technical_skills || Object.keys(technical_skills).length === 0) return null;
         return (
-          <div key="technical_skills" className="mb-4">
+          <div key="technical_skills" className="resume-section mb-4">
             <h2 className="text-[12pt] font-bold uppercase border-b border-black mb-2 font-serif text-black tracking-wider">Technical Skills</h2>
             <div className="text-[10pt] space-y-1 font-serif">
               {Object.entries(technical_skills).map(([category, skills]) => {
@@ -50,17 +49,15 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({ data, sectionOrder }) => 
       case 'work_experience':
         if (!work_experience?.length) return null;
         return (
-          <div key="work_experience" className="mb-4">
+          <div key="work_experience" className="resume-section mb-4">
             <h2 className="text-[12pt] font-bold uppercase border-b border-black mb-3 font-serif text-black tracking-wider">Work Experience</h2>
             <div className="space-y-4 font-serif">
               {work_experience.map((job, i) => (
-                <div key={i}>
-                  {/* Row 1: Company | Dates */}
+                <div key={i} className="break-inside-avoid">
                   <div className="flex justify-between items-baseline mb-0.5">
                     <span className="font-bold text-[11pt] text-black">{job.company}</span>
                     <span className="text-[11pt] text-black text-right whitespace-nowrap font-bold">{job.dates}</span>
                   </div>
-                  {/* Row 2: Title | Location */}
                   <div className="flex justify-between items-baseline mb-1">
                     <span className="text-[11pt] text-black italic">{job.job_title}</span>
                     <span className="text-[11pt] text-black text-right italic">{job.location}</span>
@@ -79,30 +76,27 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({ data, sectionOrder }) => 
       case 'projects':
         if (!projects?.length) return null;
         return (
-          <div key="projects" className="mb-4">
+          <div key="projects" className="resume-section mb-4">
             <h2 className="text-[12pt] font-bold uppercase border-b border-black mb-3 font-serif text-black tracking-wider">Projects</h2>
             <div className="space-y-3 font-serif">
               {projects.map((project, i) => (
-                <div key={i}>
-                   {/* Row 1: Name | Dates */}
+                <div key={i} className="break-inside-avoid">
                   <div className="flex justify-between items-baseline mb-0.5">
                     <div className="flex items-center gap-2">
                        <span className="font-bold text-[11pt] text-black">{project.name}</span>
                        {project.link && (
-                         <span className="text-[10pt]">
+                         <span className="text-[10pt] no-print">
                            - <a href={`https://${project.link.replace(/^https?:\/\//, '')}`} className="text-blue-800 hover:underline" target="_blank" rel="noreferrer">Link ↗</a>
                          </span>
                        )}
                     </div>
                     <span className="text-[11pt] text-black font-bold whitespace-nowrap">{project.dates}</span>
                   </div>
-                   {/* Row 2: Associated With | (Empty/Location if exists) */}
                   {project.associated_with && (
                     <div className="flex justify-between items-baseline mb-1">
                       <span className="text-[11pt] text-black italic">{project.associated_with}</span>
                     </div>
                   )}
-
                   <ul className="list-disc ml-5 text-[10pt] text-black space-y-1 marker:text-black">
                     {project.bullets?.map((bullet, j) => (
                       <li key={j} className="pl-1">{bullet}</li>
@@ -117,22 +111,19 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({ data, sectionOrder }) => 
       case 'education':
         if (!education?.length) return null;
         return (
-          <div key="education" className="mb-4">
+          <div key="education" className="resume-section mb-4">
             <h2 className="text-[12pt] font-bold uppercase border-b border-black mb-3 font-serif text-black tracking-wider">Education</h2>
             <div className="space-y-3 font-serif">
               {education.map((edu, i) => (
-                <div key={i}>
-                  {/* Row 1: Institution | Dates */}
+                <div key={i} className="break-inside-avoid">
                   <div className="flex justify-between items-baseline mb-0.5">
                     <span className="font-bold text-[11pt] text-black">{edu.institution}</span>
                     <span className="text-[11pt] text-black font-bold whitespace-nowrap">{edu.graduation_date}</span>
                   </div>
-                  {/* Row 2: Degree | Location */}
                   <div className="flex justify-between items-baseline mb-1">
                      <span className="text-[11pt] text-black italic">{edu.degree} in {edu.major}</span>
                      <span className="text-[11pt] text-black italic">{edu.location}</span>
                   </div>
-                  
                   <div className="mt-1 text-[10pt] text-black">
                      {edu.gpa && <span className="mr-4"><span className="font-bold">GPA:</span> {edu.gpa}</span>}
                      {edu.honors && edu.honors.length > 0 && <span><span className="font-bold">Honors:</span> {edu.honors.join(', ')}</span>}
@@ -151,7 +142,7 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({ data, sectionOrder }) => 
       case 'achievements':
         if (!achievements?.length) return null;
         return (
-          <div key="achievements" className="mb-4">
+          <div key="achievements" className="resume-section mb-4">
             <h2 className="text-[12pt] font-bold uppercase border-b border-black mb-2 font-serif text-black tracking-wider">Key Achievements</h2>
             <ul className="list-disc ml-5 text-[10pt] text-black space-y-1 marker:text-black font-serif">
               {achievements.map((achievement, i) => (
@@ -169,15 +160,14 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({ data, sectionOrder }) => 
   return (
     <div 
       id="resume-content" 
-      className="bg-white text-black mx-auto shadow-2xl print:shadow-none"
+      className="bg-white text-black mx-auto shadow-2xl print:shadow-none transition-all duration-300"
       style={{ 
-        width: '210mm', // A4 width
-        minHeight: '297mm', // A4 height
-        padding: '0.75in', // 0.75in margins (approx 19mm), fits user request of 0.5-1.0
+        width: '210mm',
+        minHeight: '297mm',
+        padding: '0.75in',
         boxSizing: 'border-box'
       }}
     >
-      {/* Header */}
       <div className="text-center mb-6 pb-2">
         <h1 className="text-[20pt] font-bold mb-2 uppercase tracking-wide text-black font-serif">{personal_info?.name}</h1>
         <div className="text-[11pt] flex flex-wrap justify-center gap-x-2 text-black font-serif">
@@ -207,7 +197,6 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({ data, sectionOrder }) => 
         </div>
       </div>
 
-      {/* Dynamic Sections */}
       {sectionOrder.map(section => renderSection(section))}
     </div>
   );

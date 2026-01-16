@@ -14,7 +14,6 @@ const App: React.FC = () => {
   const [showPromptModal, setShowPromptModal] = useState(false);
   const [promptInput, setPromptInput] = useState('');
   
-  // Editor State
   const [editorMode, setEditorMode] = useState<'form' | 'json'>('form');
   const [sectionOrder, setSectionOrder] = useState<string[]>([
       'summary',
@@ -25,7 +24,6 @@ const App: React.FC = () => {
       'achievements'
   ]);
 
-  // Sync JSON string changes to Resume Data Object (One way sync for JSON Editor)
   const handleJsonChange = (newJson: string) => {
     setJsonString(newJson);
     try {
@@ -41,7 +39,6 @@ const App: React.FC = () => {
     }
   };
 
-  // Sync Form changes to JSON String (reverse sync)
   const handleFormDataChange = (newData: ResumeData) => {
       setResumeData(newData);
       setJsonString(JSON.stringify(newData, null, 2));
@@ -84,7 +81,6 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col h-screen bg-gray-100">
-      {/* Navbar - Hidden on print */}
       <header className="bg-white border-b border-gray-200 px-6 py-3 flex justify-between items-center no-print shrink-0 z-10 shadow-sm">
         <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-lg">R</div>
@@ -118,9 +114,7 @@ const App: React.FC = () => {
         </div>
       </header>
 
-      {/* Main Content Area */}
       <main className="flex-1 overflow-hidden flex relative">
-        {/* Left Panel: Editor */}
         <div className="w-1/2 min-w-[320px] max-w-[600px] border-r border-gray-200 bg-gray-50 flex flex-col no-print z-0 h-full">
             <div className="px-4 py-2 border-b border-gray-200 bg-white flex items-center justify-between shrink-0">
                 <span className="font-semibold text-gray-700">Editor</span>
@@ -158,15 +152,13 @@ const App: React.FC = () => {
             </div>
         </div>
 
-        {/* Right Panel: Preview */}
-        <div className="flex-1 h-full overflow-auto bg-gray-200/50 p-8 flex justify-center print-container">
-            <div className="origin-top scale-[0.9] lg:scale-100 transition-transform">
+        <div className="flex-1 h-full overflow-auto bg-[#33373e] p-8 flex justify-center print-container">
+            <div className="print:transform-none scale-[0.75] xl:scale-90 2xl:scale-100 origin-top transition-transform h-fit">
                 <ResumePreview data={resumeData} sectionOrder={sectionOrder} />
             </div>
         </div>
       </main>
 
-      {/* AI Prompt Modal */}
       {showPromptModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 no-print">
             <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">

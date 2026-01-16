@@ -8,32 +8,58 @@
     <style>
       @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Merriweather:wght@300;400;700&display=swap');
       
-      /* Print styles to ensure exact A4 rendering */
       @media print {
         @page {
           margin: 0;
           size: auto;
         }
+        
         body {
-          margin: 0;
+          margin: 0 !important;
+          padding: 0 !important;
+          background: white !important;
+          overflow: visible !important;
+          height: auto !important;
           -webkit-print-color-adjust: exact;
           print-color-adjust: exact;
-          background: white;
         }
+
         .no-print {
           display: none !important;
         }
+
+        /* Ensure the print container occupies the whole page */
         .print-container {
-          width: 100%;
-          margin: 0;
-          padding: 0;
-          box-shadow: none;
+          position: absolute;
+          left: 0;
+          top: 0;
+          width: 100% !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          box-shadow: none !important;
           display: block !important;
-          background: white;
-          overflow: visible !important;
-          height: auto !important;
+          background: white !important;
+          transform: none !important;
         }
-        /* Hide scrollbars in print */
+
+        #resume-content {
+          width: 100% !important;
+          margin: 0 !important;
+          padding: 0.5in !important; /* Smaller margins for print to maximize content */
+          box-shadow: none !important;
+          border: none !important;
+          height: auto !important;
+          min-height: 0 !important;
+        }
+
+        /* Prevent sections from breaking across pages */
+        .resume-section {
+          break-inside: avoid;
+          page-break-inside: avoid;
+          margin-bottom: 1rem;
+        }
+
+        /* Hide scrollbars */
         ::-webkit-scrollbar {
           display: none;
         }
