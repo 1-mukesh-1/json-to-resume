@@ -2,74 +2,71 @@ import { ResumeData } from './types';
 
 export const SAMPLE_RESUME: ResumeData = {
   personal_info: {
-    name: "John Doe",
-    email: "john.doe@email.com",
+    name: "Alex Sterling",
+    email: "alex.sterling@example.com",
     phone: "(555) 123-4567",
-    linkedin: "linkedin.com/in/johndoe",
-    github: "github.com/johndoe",
+    linkedin: "linkedin.com/in/alexsterling",
+    github: "github.com/alexsterling",
     location: "San Francisco, CA"
   },
-  summary: "Senior Software Engineer with 6+ years of experience building scalable web applications. Expertise in React, Node.js, and cloud infrastructure. Led teams of 5-8 engineers delivering products used by 2M+ users.",
+  summary: "Senior Frontend Engineer with 7+ years of experience building performant, scalable web applications. deeply proficient in the React ecosystem, TypeScript, and modern state management. Proven track record of leading teams and improving developer velocity.",
   education: [
     {
       degree: "Bachelor of Science",
       major: "Computer Science",
-      institution: "University of California, Berkeley",
-      location: "Berkeley, CA",
-      graduation_date: "May 2018",
-      gpa: "3.8",
-      honors: ["Magna Cum Laude", "Dean's List"],
-      relevant_coursework: ["Data Structures", "Algorithms", "Distributed Systems"]
+      institution: "Stanford University",
+      location: "Stanford, CA",
+      graduation_date: "June 2017",
+      gpa: "3.9",
+      honors: ["Phi Beta Kappa", "President's Award"],
+      relevant_coursework: ["Advanced Algorithms", "Web Security", "Human-Computer Interaction"]
     }
   ],
   technical_skills: {
-    languages: ["JavaScript", "TypeScript", "Python", "Go"],
-    frameworks: ["React", "Node.js", "Express", "Next.js"],
-    databases: ["PostgreSQL", "MongoDB", "Redis"],
-    cloud: ["AWS", "GCP", "Docker", "Kubernetes"],
-    tools: ["Git", "Jenkins", "Terraform", "Datadog"]
+    languages: ["TypeScript", "JavaScript (ES6+)", "Python", "Rust"],
+    frameworks: ["React", "Next.js", "Vue.js", "Tailwind CSS"],
+    databases: ["PostgreSQL", "Redis", "Firebase"],
+    cloud: ["AWS (S3, CloudFront, Lambda)", "Vercel", "Docker"],
+    tools: ["Git", "Webpack", "Vite", "Figma"]
   },
   work_experience: [
     {
-      job_title: "Senior Software Engineer",
-      company: "Tech Corp",
+      job_title: "Senior Frontend Engineer",
+      company: "InnovateTech",
       location: "San Francisco, CA",
-      dates: "Jan 2021 - Present",
+      dates: "Aug 2021 - Present",
       bullets: [
-        "Led development of microservices architecture serving 2M+ daily active users, improving response times by 40%",
-        "Mentored team of 5 junior engineers, conducting code reviews and establishing best practices",
-        "Designed and implemented real-time notification system using WebSockets and Redis pub/sub",
-        "Reduced infrastructure costs by 30% through optimization of AWS resources and implementing auto-scaling"
+        "Architected a micro-frontend framework using Module Federation, reducing build times by 60%.",
+        "Led a team of 6 engineers in rebuilding the core customer dashboard, resulting in a 25% increase in user engagement.",
+        "Implemented a comprehensive design system in React/TypeScript used across 4 different product lines."
       ]
     },
     {
       job_title: "Software Engineer",
-      company: "StartupXYZ",
-      location: "San Francisco, CA",
-      dates: "Jun 2018 - Dec 2020",
+      company: "WebSolutions Inc.",
+      location: "Austin, TX",
+      dates: "July 2017 - July 2021",
       bullets: [
-        "Built React-based dashboard used by 500+ enterprise clients to manage their accounts",
-        "Developed RESTful APIs in Node.js handling 10K+ requests per minute",
-        "Implemented CI/CD pipeline reducing deployment time from 2 hours to 15 minutes",
-        "Collaborated with product team to define technical requirements for new features"
+        "Developed and maintained high-traffic e-commerce platforms serving 1M+ monthly users.",
+        "Optimized frontend performance, achieving a 98/100 Lighthouse Core Web Vitals score.",
+        "Integrated third-party payment gateways (Stripe, PayPal) ensuring PCI compliance."
       ]
     }
   ],
   projects: [
     {
-      name: "Open Source CLI Tool",
-      associated_with: "Personal Project",
+      name: "React Performance Monitor",
+      associated_with: "Open Source",
       dates: "2023",
-      link: "github.com/johndoe/cli-tool",
+      link: "github.com/alexsterling/rpm",
       bullets: [
-        "Created command-line tool for automating deployment workflows with 500+ GitHub stars",
-        "Built with Go, supporting Linux, macOS, and Windows platforms"
+        "Created a lightweight React component for real-time rendering performance monitoring.",
+        "Garnered 1.2k+ stars on GitHub and used by several Fortune 500 companies."
       ]
     }
   ],
   achievements: [
-    "AWS Certified Solutions Architect - Professional (2023)",
-    "Speaker at ReactConf 2022 - 'Scaling React Applications'",
-    "Hackathon Winner - TechCrunch Disrupt 2021"
+    "Speaker at React Summit 2023 on 'Next-Gen State Management'",
+    "Winner of the 2022 Global Hackathon for 'Best Accessibility Tool'"
   ]
 };
