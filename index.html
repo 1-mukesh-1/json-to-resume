@@ -8,60 +8,64 @@
     <style>
       @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Merriweather:wght@300;400;700&display=swap');
       
+      /* Base styles */
+      body {
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+
+      /* Advanced Print Styles */
       @media print {
         @page {
           margin: 0;
-          size: auto;
+          size: A4;
         }
-        
-        body {
+
+        /* Hide the entire app UI */
+        body * {
+          visibility: hidden;
+          background: none !important;
+        }
+
+        /* Show ONLY the resume content and its children */
+        #resume-to-print,
+        #resume-to-print *,
+        #resume-content,
+        #resume-content * {
+          visibility: visible;
+        }
+
+        /* Position the resume perfectly at the top-left of the physical page */
+        #resume-to-print {
+          position: fixed !important;
+          left: 0 !important;
+          top: 0 !important;
+          width: 100% !important;
+          height: auto !important;
           margin: 0 !important;
           padding: 0 !important;
+          transform: none !important; /* Remove scaling */
+          z-index: 9999;
           background: white !important;
-          overflow: visible !important;
-          height: auto !important;
-          -webkit-print-color-adjust: exact;
-          print-color-adjust: exact;
+          display: block !important;
+        }
+
+        #resume-content {
+          width: 210mm !important; /* Force A4 width */
+          margin: 0 auto !important;
+          box-shadow: none !important;
+          border: none !important;
+          /* Browser handles padding inside resume-content */
         }
 
         .no-print {
           display: none !important;
         }
 
-        /* Ensure the print container occupies the whole page */
-        .print-container {
-          position: absolute;
-          left: 0;
-          top: 0;
-          width: 100% !important;
-          margin: 0 !important;
-          padding: 0 !important;
-          box-shadow: none !important;
-          display: block !important;
-          background: white !important;
-          transform: none !important;
-        }
-
-        #resume-content {
-          width: 100% !important;
-          margin: 0 !important;
-          padding: 0.5in !important; /* Smaller margins for print to maximize content */
-          box-shadow: none !important;
-          border: none !important;
-          height: auto !important;
-          min-height: 0 !important;
-        }
-
-        /* Prevent sections from breaking across pages */
+        /* Prevent sections from breaking awkwardly */
         .resume-section {
           break-inside: avoid;
           page-break-inside: avoid;
-          margin-bottom: 1rem;
-        }
-
-        /* Hide scrollbars */
-        ::-webkit-scrollbar {
-          display: none;
         }
       }
     </style>
