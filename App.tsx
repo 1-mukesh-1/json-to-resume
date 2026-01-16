@@ -115,7 +115,7 @@ const App: React.FC = () => {
       </header>
 
       <main className="flex-1 overflow-hidden flex relative">
-        {/* Editor Sidebar */}
+        {/* Editor Sidebar - Hidden on print */}
         <div className="w-1/2 min-w-[320px] max-w-[600px] border-r border-gray-200 bg-gray-50 flex flex-col no-print z-0 h-full">
             <div className="px-4 py-2 border-b border-gray-200 bg-white flex items-center justify-between shrink-0">
                 <span className="font-semibold text-gray-700">Editor</span>
@@ -153,8 +153,8 @@ const App: React.FC = () => {
             </div>
         </div>
 
-        {/* Preview Canvas */}
-        <div className="flex-1 h-full overflow-auto bg-[#33373e] p-8 flex justify-center no-print">
+        {/* Preview Canvas - Background hidden on print via CSS, but container stays visible */}
+        <div id="resume-container-outer" className="flex-1 h-full overflow-auto bg-[#33373e] p-8 flex justify-center">
             <div id="resume-to-print" className="scale-[0.75] xl:scale-90 2xl:scale-100 origin-top transition-transform h-fit">
                 <ResumePreview data={resumeData} sectionOrder={sectionOrder} />
             </div>
