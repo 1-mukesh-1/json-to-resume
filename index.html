@@ -3,83 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>JSON Resume Builder</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Merriweather:wght@300;400;700&display=swap');
-      
-      body {
-        -webkit-font-smoothing: antialiased;
-        -moz-osx-font-smoothing: grayscale;
-      }
-
-      @media print {
-        /* Hide everything with no-print class */
-        .no-print {
-          display: none !important;
-        }
-
-        /* Reset body for printing */
-        body, html {
-          background: white !important;
-          margin: 0 !important;
-          padding: 0 !important;
-          height: auto !important;
-          overflow: visible !important;
-        }
-
-        /* The container that holds the resume */
-        #resume-container-outer {
-          background: white !important;
-          padding: 0 !important;
-          margin: 0 !important;
-          display: block !important;
-          overflow: visible !important;
-        }
-
-        /* Remove the 'scale' transform and positioning used for the UI preview */
-        #resume-to-print {
-          transform: none !important;
-          margin: 0 !important;
-          padding: 0 !important;
-          width: 100% !important;
-          display: block !important;
-        }
-
-        /* The actual white sheet of paper */
-        #resume-content {
-          width: 210mm !important; /* Standard A4 Width */
-          margin: 0 auto !important;
-          box-shadow: none !important;
-          border: none !important;
-          padding: 0.75in !important; /* Standard professional resume margins */
-        }
-
-        /* Avoid breaking sections across pages where possible */
-        .resume-section {
-          break-inside: avoid;
-        }
-
-        @page {
-          size: A4;
-          margin: 0;
-        }
-      }
-    </style>
-  <script type="importmap">
-{
-  "imports": {
-    "react/": "https://esm.sh/react@^19.2.3/",
-    "react": "https://esm.sh/react@^19.2.3",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "@google/genai": "https://esm.sh/@google/genai@^1.37.0",
-    "lucide-react": "https://esm.sh/lucide-react@^0.475.0"
-  }
-}
-</script>
-</head>
-  <body class="bg-gray-100 text-gray-900 font-sans h-screen overflow-hidden">
-    <div id="root" class="h-full"></div>
-    <script type="module" src="./index.tsx"></script>
+    <title>ATS Resume Builder</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
