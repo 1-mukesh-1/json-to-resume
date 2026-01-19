@@ -60,3 +60,126 @@ const SAMPLE_DATA = {
   }],
   achievements: ["Speaker at React Summit 2023", "Winner of 2022 Global Hackathon"]
 };
+
+export function ResumeProvider({ children }) {
+  const [currentResume, setCurrentResume] = useState(SAMPLE_DATA);
+  const [currentResumeId, setCurrentResumeId] = useState(null);
+  const [resumeList, setResumeList] = useState([]);
+  const [jsonInput, setJsonInput] = useState(JSON.stringify(SAMPLE_DATA, null, 2));
+  const [jsonError, setJsonError] = useState('');
+  const [isDirty, setIsDirty] = useState(false);
+
+  // Parse and transform JSON input
+  const handleJsonChange = useCallback((value) => {
+    setJsonInput(value);
+    try {
+      const parsed = JSON.parse(value);
+      const transformed = transformResumeData(parsed);
+      setCurrentResume(transformed);
+      setJsonError('');
+      setIsDirty(true);
+    } catch (err) {
+      setJsonError('Invalid JSON');
+    }
+  }, []);
+
+  // Update resume data from visual editor
+  const handleDataChange = useCallback((data) => {
+    setCurrentResume(data);
+    setJsonInput(JSON.stringify(data, null, 2));
+    setIsDirty(true);
+  }, []);
+
+  // Load all resumes from Supabase
+  const loadResumes = useCallback(async (filters = {}) => {
+    const data = await resumeService.getResumes(filters);
+    setResumeList(data);
+    return data;
+  }, []);
+
+  // Load single resume for editing
+  const loadResume = useCallback(async (id) => {
+    const data = await resumeService.getResumeById(id);
+    const transformed = transformResumeData(data.resume_data);
+    setCurrentResume(transformed);
+    setJsonInput(JSON.stringify(transformed, null, 2));
+    setCurrentResumeId(data.id);
+    setIsDirty(false);
+    return data;
+  }, []);
+
+  // Save current resume
+  const saveResume = useCallback(async () => {
+    const validation = validateForSave(currentResume);
+    if (!validation.valid) {
+      throw new Error(validation.errors.join(', '));
+    }
+
+    let result;
+    if (currentResumeId) {
+      result = await resumeService.updateResume(currentResumeId, currentResume);
+    } else {
+      result = await resumeService.createResume(currentResume);
+      setCurrentResumeId(result.id);
+    }
+    setIsDirty(false);
+    return result;
+  }, [currentResume, currentResumeId]);
+
+  // Delete resume
+  const deleteResume = useCallback(async (id) => {
+    await resumeService.deleteResume(id);
+    setResumeList(prev => prev.filter(r => r.id !== id));
+    if (currentResumeId === id) {
+      setCurrentResumeId(null);
+      setCurrentResume(SAMPLE_DATA);
+      setJsonInput(JSON.stringify(SAMPLE_DATA, null, 2));
+    }
+  }, [currentResumeId]);
+
+  // Duplicate resume
+  const duplicateResume = useCallback(async (id) => {
+    const result = await resumeService.duplicateResume(id);
+    await loadResumes();
+    return result;
+  }, [loadResumes]);
+
+  // Update status
+  const updateStatus = useCallback(async (id, status) => {
+    const appliedDate = status === 'applied' ? new Date().toISOString().split('T')[0] : null;
+    const result = await resumeService.updateResumeStatus(id, status, appliedDate);
+    setResumeList(prev => prev.map(r => r.id === id ? result : r));
+    return result;
+  }, []);
+
+  // Create new resume
+  const newResume = useCallback(() => {
+    setCurrentResume(SAMPLE_DATA);
+    setJsonInput(JSON.stringify(SAMPLE_DATA, null, 2));
+    setCurrentResumeId(null);
+    setIsDirty(false);
+  }, []);
+
+  return (
+    <ResumeContext.Provider value={{
+      currentResume, setCurrentResume,
+      currentResumeId, setCurrentResumeId,
+      resumeList, setResumeList,
+      jsonInput, jsonError,
+      isDirty,
+      handleJsonChange,
+      handleDataChange,
+      loadResumes,
+      loadResume,
+      saveResume,
+      deleteResume,
+      duplicateResume,
+      updateStatus,
+      newResume
+    }}>
+      {children}
+    </ResumeContext.Provider>
+  );
+}
+
+export const useResume = () => useContext(ResumeContext);

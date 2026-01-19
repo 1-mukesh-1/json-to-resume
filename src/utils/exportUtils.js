@@ -1,3 +1,6 @@
+/**
+ * Download JSON as file
+ */
 export function downloadJson(data, filename) {
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
@@ -10,6 +13,9 @@ export function downloadJson(data, filename) {
   URL.revokeObjectURL(url);
 }
 
+/**
+ * Generate filename for resume export
+ */
 export function generateFilename(resume) {
   const company = resume.company || 'unknown';
   const role = resume.role || 'resume';
@@ -17,6 +23,9 @@ export function generateFilename(resume) {
   return `${company}_${role}_${date}.json`.replace(/\s+/g, '_').toLowerCase();
 }
 
+/**
+ * Read JSON file and parse
+ */
 export function readJsonFile(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();

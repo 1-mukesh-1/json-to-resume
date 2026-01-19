@@ -1,3 +1,6 @@
+/**
+ * Transforms AI-generated JSON to app-compatible format
+ */
 export function transformResumeData(data) {
   if (!data) return data;
   
@@ -9,22 +12,32 @@ export function transformResumeData(data) {
   };
 }
 
+/**
+ * Normalize education - handle both 'dates' and 'graduation_date'
+ */
 function transformEducation(education) {
   if (!Array.isArray(education)) return education;
   
   return education.map(edu => ({
     ...edu,
     dates: edu.dates || edu.graduation_date || '',
+    // Keep coursework if present
     coursework: edu.coursework || null
   }));
 }
 
+/**
+ * Transform achievements from objects to strings
+ * Format: "Title – Issuer: Description"
+ */
 function transformAchievements(achievements) {
   if (!Array.isArray(achievements)) return achievements;
   
   return achievements.map(achievement => {
+    // Already a string
     if (typeof achievement === 'string') return achievement;
     
+    // Object with title, issuer, description
     if (typeof achievement === 'object' && achievement !== null) {
       const { title, issuer, description } = achievement;
       
@@ -43,11 +56,18 @@ function transformAchievements(achievements) {
   });
 }
 
+/**
+ * Pass through any skill categories - render dynamically
+ */
 function normalizeSkillCategories(skills) {
   if (!skills || typeof skills !== 'object') return skills;
   return skills;
 }
 
+/**
+ * Flatten all skills into a single comma-separated string
+ * Preserves category order, removes duplicates
+ */
 export function flattenSkills(technicalSkills) {
   if (!technicalSkills || typeof technicalSkills !== 'object') return '';
   
@@ -70,6 +90,9 @@ export function flattenSkills(technicalSkills) {
   return allSkills.join(', ');
 }
 
+/**
+ * Validate that JSON has required job_metadata for saving
+ */
 export function validateForSave(data) {
   const errors = [];
   
