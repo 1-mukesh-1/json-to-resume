@@ -3,6 +3,7 @@ import { Search, Download, Upload, Filter } from 'lucide-react';
 import { ResumeList } from './ResumeList';
 import { ConfirmModal } from '../modals/ConfirmModal';
 import { ImportModal } from '../modals/ImportModal';
+import { PreviewModal } from '../modals/PreviewModal';
 import { Button } from '../shared/Button';
 import { Select } from '../shared/Select';
 import { useResume } from '../../contexts/ResumeContext';
@@ -26,6 +27,7 @@ export function ResumesPage() {
   const [filters, setFilters] = useState({ status: '', search: '' });
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [showImport, setShowImport] = useState(false);
+  const [previewResume, setPreviewResume] = useState(null);
 
   // Load resumes on mount
   useEffect(() => {
@@ -58,11 +60,12 @@ export function ResumesPage() {
     );
   });
 
+  // View opens preview modal
   const handleView = (resume) => {
-    loadResume(resume.id);
-    setActiveTab('builder');
+    setPreviewResume(resume);
   };
 
+  // Edit goes to builder
   const handleEdit = (resume) => {
     loadResume(resume.id);
     setActiveTab('builder');
@@ -197,6 +200,12 @@ export function ResumesPage() {
         isOpen={showImport}
         onClose={() => setShowImport(false)}
         onImport={handleImport}
+      />
+
+      <PreviewModal
+        isOpen={!!previewResume}
+        onClose={() => setPreviewResume(null)}
+        resume={previewResume}
       />
     </div>
   );

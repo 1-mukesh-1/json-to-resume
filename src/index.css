@@ -1,3 +1,81 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Ensure full height layout */
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Custom scrollbar styles */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a1a1a1;
+}
+
+/* Panel resize handle styles */
+[data-panel-resize-handle-id] {
+  transition: background-color 0.15s ease;
+}
+
+[data-panel-resize-handle-id]:hover {
+  background-color: #3b82f6 !important;
+}
+
+[data-panel-resize-handle-id][data-resize-handle-active] {
+  background-color: #2563eb !important;
+}
+
+/* Print styles */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  
+  #resume-content, #resume-content * {
+    visibility: visible;
+  }
+  
+  #resume-content {
+    position: absolute;
+    left: 0;
+    top: 0;
+  }
+}
+
+/* Zoom/Pan cursor styles */
+.react-transform-wrapper {
+  cursor: grab;
+}
+
+.react-transform-wrapper:active {
+  cursor: grabbing;
+}
+
+/* Mobile touch improvements */
+@media (max-width: 768px) {
+  input, select, textarea, button {
+    font-size: 16px; /* Prevents iOS zoom on focus */
+  }
+}

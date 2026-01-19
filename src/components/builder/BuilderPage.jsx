@@ -1,23 +1,52 @@
-import React, { useState } from 'react';
-import { Eye, Code, Download, Settings, Save } from 'lucide-react';
+import React, { useState, useCallback, useEffect } from 'react';
+import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
+import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
+import { 
+  Eye, Code, Download, Save, Settings, PanelLeftClose, PanelRightClose,
+  PanelLeft, PanelRight, ZoomIn, ZoomOut, RotateCcw, FileText, Sliders
+} from 'lucide-react';
 import { JsonEditor } from './JsonEditor';
 import { VisualEditor } from './VisualEditor';
 import { ResumePreview } from './ResumePreview';
 import { ConfigPanel } from './ConfigPanel';
+import { PageFillIndicator } from './PageFillIndicator';
 import { useResume } from '../../contexts/ResumeContext';
 import { useConfig } from '../../contexts/ConfigContext';
 import { useUI } from '../../contexts/UIContext';
 import { Button } from '../shared/Button';
-import { flattenSkills } from '../../utils/schemaTransform';
+import { downloadPDF } from '../pdf/PDFDocument';
+
+// Custom hook for responsive breakpoints
+function useMediaQuery(query) {
+  const [matches, setMatches] = useState(false);
+  
+  useEffect(() => {
+    const media = window.matchMedia(query);
+    if (media.matches !== matches) {
+      setMatches(media.matches);
+    }
+    const listener = () => setMatches(media.matches);
+    media.addEventListener('change', listener);
+    return () => media.removeEventListener('change', listener);
+  }, [matches, query]);
+  
+  return matches;
+}
 
 export function BuilderPage() {
   const { currentResume, saveResume, isDirty } = useResume();
-  const { config, sectionOrder } = useConfig();
+  const { config, sectionOrder, settingsPanelOpen, setSettingsPanelOpen, editorPanelOpen, setEditorPanelOpen, autoFit } = useConfig();
   const { showToast } = useUI();
   
+  // Responsive breakpoints
+  const isMobile = useMediaQuery('(max-width: 768px)');
+  const isTablet = useMediaQuery('(max-width: 1024px)');
+  
   const [editMode, setEditMode] = useState('visual');
-  const [showConfig, setShowConfig] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  const [fillPercent, setFillPercent] = useState(0);
+  const [mobileTab, setMobileTab] = useState('preview'); // 'editor' | 'preview' | 'settings'
 
   const handleSave = async () => {
     setSaving(true);
@@ -31,136 +60,336 @@ export function BuilderPage() {
     }
   };
 
-  const handleDownload = () => {
-    const html = generatePrintHTML(currentResume, sectionOrder, config);
-    const win = window.open('', '_blank');
-    win.document.write(html);
-    win.document.close();
-    win.onload = () => win.print();
-  };
-
-  return (
-    <div className="flex flex-1 overflow-hidden">
-      {/* Left Panel - Editor */}
-      <div className="w-1/2 border-r bg-white flex flex-col">
-        <div className="p-2 border-b flex gap-2 bg-gray-50">
-          <button 
-            onClick={() => setEditMode('visual')} 
-            className={`flex items-center gap-1 px-3 py-1 rounded text-sm ${editMode === 'visual' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
-          >
-            <Eye size={16} /> Visual
-          </button>
-          <button 
-            onClick={() => setEditMode('json')} 
-            className={`flex items-center gap-1 px-3 py-1 rounded text-sm ${editMode === 'json' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
-          >
-            <Code size={16} /> JSON
-          </button>
-          
-          <div className="flex-1" />
-          
-          {isDirty && (
-            <span className="text-xs text-orange-600 self-center">Unsaved changes</span>
-          )}
-          
-          <Button onClick={handleSave} disabled={saving} variant="success" size="sm">
-            {saving ? <span className="animate-pulse">Saving...</span> : <><Save size={16} /> Save</>}
-          </Button>
-        </div>
-        
-        <div className="flex-1 overflow-auto p-3">
-          {editMode === 'json' ? <JsonEditor /> : <VisualEditor />}
-        </div>
-      </div>
-
-      {/* Right Panel - Preview */}
-      <div className="w-1/2 flex flex-col bg-gray-700">
-        <div className="p-2 border-b border-gray-600 flex justify-end gap-2">
-          <Button onClick={() => setShowConfig(true)} variant="ghost" size="sm" className="text-gray-300 hover:text-white hover:bg-gray-600">
-            <Settings size={18} /> Settings
-          </Button>
-          <Button onClick={handleDownload} variant="success" size="sm">
-            <Download size={18} /> Download PDF
-          </Button>
-        </div>
-        
-        <div className="flex-1 overflow-auto p-6 flex justify-center">
-          <div className="bg-white shadow-xl origin-top scale-[0.75] xl:scale-[0.85]">
-            <ResumePreview />
-          </div>
-        </div>
-      </div>
-
-      {showConfig && <ConfigPanel onClose={() => setShowConfig(false)} />}
-    </div>
-  );
-}
-
-// Generate Print HTML helper function
-function generatePrintHTML(data, sectionOrder, config) {
-  const { personal_info, summary, education, technical_skills, work_experience, projects, achievements } = data;
-  const { fontFamily, fontSize, margins, lineHeight, sectionSpacing, bulletSpacing, colors, flattenSkills: shouldFlatten } = config;
-  
-  const links = [
-    personal_info?.linkedin && { label: 'LinkedIn', url: personal_info.linkedin },
-    personal_info?.github && { label: 'GitHub', url: personal_info.github },
-    personal_info?.portfolio && { label: 'Portfolio', url: personal_info.portfolio }
-  ].filter(Boolean);
-  const linksHTML = links.map(l => `<a href="${l.url.startsWith('http') ? l.url : `https://${l.url}`}" target="_blank">${l.label}</a>`).join(' | ');
-
-  const renderSection = id => {
-    switch (id) {
-      case 'summary': 
-        return summary ? `<div class="section"><div class="section-title">Professional Summary</div><p>${summary}</p></div>` : '';
-      
-      case 'technical_skills': 
-        if (!technical_skills) return '';
-        if (shouldFlatten) {
-          return `<div class="section"><div class="section-title">Skills</div><div>${flattenSkills(technical_skills)}</div></div>`;
-        }
-        return `<div class="section"><div class="section-title">Technical Skills</div>${Object.entries(technical_skills).filter(([_, s]) => s?.length > 0).map(([c, s]) => `<div><strong>${c.replace(/_/g, ' ')}:</strong> ${s.join(', ')}</div>`).join('')}</div>`;
-      
-      case 'work_experience': 
-        if (!work_experience?.length) return ''; 
-        return `<div class="section"><div class="section-title">Work Experience</div>${work_experience.map(j => `<div class="entry"><div class="row"><span class="bold">${j.company}</span><span class="bold">${j.dates}</span></div><div class="row"><span class="italic">${j.job_title}</span><span class="italic">${j.location}</span></div><ul>${j.bullets?.filter(Boolean).map(b => `<li>${b}</li>`).join('')}</ul></div>`).join('')}</div>`;
-      
-      case 'projects': 
-        if (!projects?.length) return ''; 
-        return `<div class="section"><div class="section-title">Projects</div>${projects.map(p => `<div class="entry"><div class="row"><span class="bold">${p.name}${p.link ? ` | ${p.link}` : ''}</span><span class="bold">${p.dates}</span></div>${p.associated_with ? `<div class="italic">${p.associated_with}</div>` : ''}<ul>${p.bullets?.filter(Boolean).map(b => `<li>${b}</li>`).join('')}</ul></div>`).join('')}</div>`;
-      
-      case 'education': 
-        if (!education?.length) return ''; 
-        return `<div class="section"><div class="section-title">Education</div>${education.map(e => `<div class="entry"><div class="row"><span class="bold">${e.institution}</span><span class="bold">${e.dates}</span></div><div class="row"><span class="italic">${e.degree}</span><span class="italic">${e.location}</span></div>${e.gpa || e.honors?.length ? `<div>${e.gpa ? `<strong>GPA:</strong> ${e.gpa}` : ''}${e.gpa && e.honors?.length ? ' | ' : ''}${e.honors?.length ? `<strong>Honors:</strong> ${e.honors.join(', ')}` : ''}</div>` : ''}${e.coursework ? `<div><strong>Coursework:</strong> ${e.coursework}</div>` : ''}</div>`).join('')}</div>`;
-      
-      case 'achievements': 
-        if (!achievements?.length) return ''; 
-        return `<div class="section"><div class="section-title">Achievements</div><ul>${achievements.filter(Boolean).map(a => `<li>${a}</li>`).join('')}</ul></div>`;
-      
-      default: 
-        return '';
+  const handleDownload = async () => {
+    setDownloading(true);
+    try {
+      const meta = currentResume.job_metadata || {};
+      const filename = `${meta.company || 'resume'}_${meta.role || 'document'}.pdf`.replace(/\s+/g, '_').toLowerCase();
+      await downloadPDF(currentResume, config, sectionOrder, filename);
+      showToast('PDF downloaded!', 'success');
+    } catch (err) {
+      showToast('Failed to generate PDF', 'error');
+      console.error(err);
+    } finally {
+      setDownloading(false);
     }
   };
 
-  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${personal_info?.name || 'Resume'}</title><style>
-@page{size:letter;margin:${margins}in}
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:${fontFamily},sans-serif;font-size:${fontSize.body}pt;line-height:${lineHeight};color:${colors.text};-webkit-print-color-adjust:exact}
-.page{padding:${margins}in;max-width:8.5in;margin:0 auto}
-.header{text-align:center;margin-bottom:${sectionSpacing}px}
-.name{font-size:${fontSize.name}pt;font-weight:bold;margin-bottom:4px}
-.contact{font-size:${fontSize.contact}pt}
-.contact a{color:${colors.text};text-decoration:underline}
-.section{margin-bottom:${sectionSpacing}px}
-.section-title{font-size:${fontSize.sectionTitle}pt;font-weight:bold;border-bottom:1px solid ${colors.border};margin-bottom:6px}
-.entry{margin-bottom:10px}
-.row{display:flex;justify-content:space-between;align-items:baseline}
-.bold{font-weight:bold;font-size:${fontSize.subheader}pt}
-.italic{font-style:italic;font-size:${fontSize.subheader}pt}
-ul{margin-left:18px;margin-top:4px;list-style-type:disc}
-li{margin-bottom:${bulletSpacing}px}
-strong{text-transform:capitalize}
-</style></head><body><div class="page">
-<div class="header"><div class="name">${personal_info?.name || ''}</div><div class="contact">${[personal_info?.email, personal_info?.phone, personal_info?.location].filter(Boolean).join(' | ')}</div>${linksHTML ? `<div class="contact">${linksHTML}</div>` : ''}</div>
-${sectionOrder.map(renderSection).join('')}
-</div></body></html>`;
+  const handleFillPercentChange = useCallback((percent) => {
+    setFillPercent(percent);
+  }, []);
+
+  const handleAutoFit = () => {
+    autoFit(fillPercent);
+  };
+
+  // Mobile Layout
+  if (isMobile) {
+    return (
+      <div className="flex flex-col flex-1 overflow-hidden">
+        {/* Mobile Tab Bar */}
+        <div className="flex border-b bg-white">
+          <button
+            onClick={() => setMobileTab('editor')}
+            className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium transition-colors ${
+              mobileTab === 'editor' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50' : 'text-gray-600'
+            }`}
+          >
+            <FileText size={16} />
+            Editor
+          </button>
+          <button
+            onClick={() => setMobileTab('preview')}
+            className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium transition-colors ${
+              mobileTab === 'preview' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50' : 'text-gray-600'
+            }`}
+          >
+            <Eye size={16} />
+            Preview
+          </button>
+          <button
+            onClick={() => setMobileTab('settings')}
+            className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium transition-colors ${
+              mobileTab === 'settings' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50' : 'text-gray-600'
+            }`}
+          >
+            <Sliders size={16} />
+            Settings
+          </button>
+        </div>
+
+        {/* Mobile Content */}
+        <div className="flex-1 overflow-hidden">
+          {mobileTab === 'editor' && (
+            <div className="h-full flex flex-col bg-white">
+              <div className="p-2 border-b flex items-center gap-2 bg-gray-50">
+                <button 
+                  onClick={() => setEditMode('visual')} 
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-sm font-medium ${
+                    editMode === 'visual' ? 'bg-blue-600 text-white' : 'bg-gray-200'
+                  }`}
+                >
+                  <Eye size={14} /> Visual
+                </button>
+                <button 
+                  onClick={() => setEditMode('json')} 
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-sm font-medium ${
+                    editMode === 'json' ? 'bg-blue-600 text-white' : 'bg-gray-200'
+                  }`}
+                >
+                  <Code size={14} /> JSON
+                </button>
+              </div>
+              <div className="flex-1 overflow-auto p-3">
+                {editMode === 'json' ? <JsonEditor /> : <VisualEditor />}
+              </div>
+            </div>
+          )}
+
+          {mobileTab === 'preview' && (
+            <div className="h-full flex flex-col bg-gray-700">
+              <div className="p-2 border-b border-gray-600 flex items-center gap-2">
+                {isDirty && <span className="text-xs text-orange-400">Unsaved</span>}
+                <div className="flex-1" />
+                <Button onClick={handleSave} disabled={saving} variant="ghost" size="sm" className="text-gray-300">
+                  <Save size={16} />
+                </Button>
+                <Button onClick={handleDownload} disabled={downloading} variant="success" size="sm">
+                  <Download size={16} />
+                </Button>
+              </div>
+              <div className="px-2 py-1 bg-gray-800">
+                <PageFillIndicator fillPercent={fillPercent} onAutoFit={handleAutoFit} />
+              </div>
+              <div className="flex-1 overflow-auto">
+                <TransformWrapper initialScale={0.4} minScale={0.2} maxScale={2} centerOnInit>
+                  {({ zoomIn, zoomOut, resetTransform }) => (
+                    <>
+                      <div className="absolute top-2 right-2 z-10 flex gap-1 bg-gray-800/90 rounded-lg p-1">
+                        <button onClick={() => zoomOut()} className="p-2 text-white"><ZoomOut size={14} /></button>
+                        <button onClick={() => resetTransform()} className="p-2 text-white"><RotateCcw size={14} /></button>
+                        <button onClick={() => zoomIn()} className="p-2 text-white"><ZoomIn size={14} /></button>
+                      </div>
+                      <TransformComponent wrapperStyle={{ width: '100%', height: '100%' }} contentStyle={{ padding: '16px' }}>
+                        <div className="shadow-2xl">
+                          <ResumePreview onFillPercentChange={handleFillPercentChange} />
+                        </div>
+                      </TransformComponent>
+                    </>
+                  )}
+                </TransformWrapper>
+              </div>
+            </div>
+          )}
+
+          {mobileTab === 'settings' && (
+            <div className="h-full overflow-auto bg-white">
+              <ConfigPanel />
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Desktop Layout
+  return (
+    <div className="flex flex-col flex-1 overflow-hidden">
+      <PanelGroup direction="horizontal" className="flex-1">
+        {/* Left Panel - Editor */}
+        {editorPanelOpen && (
+          <>
+            <Panel 
+              defaultSize={30} 
+              minSize={20} 
+              maxSize={50}
+              collapsible
+              onCollapse={() => setEditorPanelOpen(false)}
+            >
+              <div className="h-full flex flex-col bg-white border-r">
+                {/* Editor Header */}
+                <div className="p-2 border-b flex items-center gap-2 bg-gray-50">
+                  <button 
+                    onClick={() => setEditMode('visual')} 
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                      editMode === 'visual' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    }`}
+                  >
+                    <Eye size={14} /> Visual
+                  </button>
+                  <button 
+                    onClick={() => setEditMode('json')} 
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                      editMode === 'json' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    }`}
+                  >
+                    <Code size={14} /> JSON
+                  </button>
+                  
+                  <div className="flex-1" />
+                  
+                  <button 
+                    onClick={() => setEditorPanelOpen(false)}
+                    className="p-1.5 hover:bg-gray-200 rounded text-gray-500"
+                    title="Collapse Editor"
+                  >
+                    <PanelLeftClose size={16} />
+                  </button>
+                </div>
+                
+                {/* Editor Content */}
+                <div className="flex-1 overflow-auto p-3">
+                  {editMode === 'json' ? <JsonEditor /> : <VisualEditor />}
+                </div>
+              </div>
+            </Panel>
+            
+            <PanelResizeHandle className="w-1.5 bg-gray-200 hover:bg-blue-400 transition-colors cursor-col-resize" />
+          </>
+        )}
+
+        {/* Center Panel - Preview */}
+        <Panel defaultSize={editorPanelOpen && settingsPanelOpen ? 45 : 60} minSize={30}>
+          <div className="h-full flex flex-col bg-gray-700">
+            {/* Preview Header */}
+            <div className="p-2 border-b border-gray-600 flex items-center gap-2">
+              {!editorPanelOpen && (
+                <button 
+                  onClick={() => setEditorPanelOpen(true)}
+                  className="p-1.5 hover:bg-gray-600 rounded text-gray-300"
+                  title="Show Editor"
+                >
+                  <PanelLeft size={16} />
+                </button>
+              )}
+              
+              {isDirty && (
+                <span className="text-xs text-orange-400 bg-orange-400/20 px-2 py-1 rounded">
+                  Unsaved changes
+                </span>
+              )}
+              
+              <div className="flex-1" />
+
+              <Button onClick={handleSave} disabled={saving} variant="ghost" size="sm" className="text-gray-300 hover:text-white hover:bg-gray-600">
+                <Save size={16} />
+                {saving ? 'Saving...' : 'Save'}
+              </Button>
+              
+              <Button 
+                onClick={handleDownload} 
+                disabled={downloading} 
+                variant="success" 
+                size="sm"
+              >
+                <Download size={16} />
+                {downloading ? 'Generating...' : 'Download PDF'}
+              </Button>
+
+              {!settingsPanelOpen && (
+                <button 
+                  onClick={() => setSettingsPanelOpen(true)}
+                  className="p-1.5 hover:bg-gray-600 rounded text-gray-300"
+                  title="Show Settings"
+                >
+                  <PanelRight size={16} />
+                </button>
+              )}
+            </div>
+            
+            {/* Page Fill Indicator */}
+            <div className="px-4 py-2 bg-gray-800">
+              <PageFillIndicator fillPercent={fillPercent} onAutoFit={handleAutoFit} />
+            </div>
+            
+            {/* Preview Area with Zoom/Pan */}
+            <div className="flex-1 overflow-hidden relative">
+              <TransformWrapper
+                initialScale={0.6}
+                minScale={0.3}
+                maxScale={2}
+                centerOnInit
+                wheel={{ step: 0.1 }}
+              >
+                {({ zoomIn, zoomOut, resetTransform }) => (
+                  <>
+                    {/* Zoom Controls */}
+                    <div className="absolute top-4 right-4 z-10 flex items-center gap-1 bg-gray-800/90 rounded-lg p-1">
+                      <button 
+                        onClick={() => zoomOut()} 
+                        className="p-2 hover:bg-gray-700 rounded text-white"
+                        title="Zoom Out"
+                      >
+                        <ZoomOut size={16} />
+                      </button>
+                      <button 
+                        onClick={() => resetTransform()} 
+                        className="p-2 hover:bg-gray-700 rounded text-white"
+                        title="Reset Zoom"
+                      >
+                        <RotateCcw size={16} />
+                      </button>
+                      <button 
+                        onClick={() => zoomIn()} 
+                        className="p-2 hover:bg-gray-700 rounded text-white"
+                        title="Zoom In"
+                      >
+                        <ZoomIn size={16} />
+                      </button>
+                    </div>
+                    
+                    <TransformComponent
+                      wrapperStyle={{ width: '100%', height: '100%' }}
+                      contentStyle={{ width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', padding: '24px' }}
+                    >
+                      <div className="shadow-2xl">
+                        <ResumePreview onFillPercentChange={handleFillPercentChange} />
+                      </div>
+                    </TransformComponent>
+                  </>
+                )}
+              </TransformWrapper>
+            </div>
+          </div>
+        </Panel>
+
+        {/* Right Panel - Settings */}
+        {settingsPanelOpen && (
+          <>
+            <PanelResizeHandle className="w-1.5 bg-gray-200 hover:bg-blue-400 transition-colors cursor-col-resize" />
+            
+            <Panel 
+              defaultSize={25} 
+              minSize={15} 
+              maxSize={35}
+              collapsible
+              onCollapse={() => setSettingsPanelOpen(false)}
+            >
+              <div className="h-full flex flex-col bg-white border-l">
+                {/* Settings Header */}
+                <div className="p-3 border-b flex items-center justify-between bg-gray-50">
+                  <div className="flex items-center gap-2">
+                    <Settings size={16} className="text-gray-500" />
+                    <span className="font-semibold text-gray-700">Settings</span>
+                  </div>
+                  <button 
+                    onClick={() => setSettingsPanelOpen(false)}
+                    className="p-1.5 hover:bg-gray-200 rounded text-gray-500"
+                    title="Collapse Settings"
+                  >
+                    <PanelRightClose size={16} />
+                  </button>
+                </div>
+                
+                {/* Settings Content */}
+                <div className="flex-1 overflow-hidden">
+                  <ConfigPanel />
+                </div>
+              </div>
+            </Panel>
+          </>
+        )}
+      </PanelGroup>
+    </div>
+  );
 }

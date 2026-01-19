@@ -1,11 +1,27 @@
-import React from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { useResume } from '../../contexts/ResumeContext';
 import { useConfig } from '../../contexts/ConfigContext';
 import { flattenSkills } from '../../utils/schemaTransform';
 
-export function ResumePreview() {
+export function ResumePreview({ onFillPercentChange }) {
   const { currentResume } = useResume();
-  const { config, sectionOrder } = useConfig();
+  const { config, sectionOrder, getPageDimensions } = useConfig();
+  const contentRef = useRef(null);
+  const containerRef = useRef(null);
+  const [isOverflowing, setIsOverflowing] = useState(false);
+  
+  const pageSize = getPageDimensions();
+  
+  // Calculate fill percentage
+  useEffect(() => {
+    if (contentRef.current && containerRef.current) {
+      const contentHeight = contentRef.current.scrollHeight;
+      const pageHeight = containerRef.current.clientHeight;
+      const fillPercent = (contentHeight / pageHeight) * 100;
+      setIsOverflowing(fillPercent > 100);
+      onFillPercentChange?.(fillPercent);
+    }
+  }, [currentResume, config, sectionOrder, onFillPercentChange]);
   
   if (!currentResume) return null;
   
@@ -19,10 +35,17 @@ export function ResumePreview() {
       lineHeight, 
       color: colors.text, 
       background: '#fff', 
-      padding: `${margins}in`, 
-      width: '8.5in', 
-      minHeight: '11in', 
-      boxSizing: 'border-box' 
+      width: `${pageSize.width}in`, 
+      height: `${pageSize.height}in`, 
+      boxSizing: 'border-box',
+      position: 'relative',
+      overflow: 'hidden',
+      boxShadow: isOverflowing ? '0 0 0 3px #ef4444' : '0 4px 6px -1px rgba(0,0,0,0.1)',
+    },
+    content: {
+      padding: `${margins}in`,
+      height: '100%',
+      boxSizing: 'border-box',
     },
     header: { textAlign: 'center', marginBottom: `${sectionSpacing}px` },
     name: { fontSize: `${fontSize.name}pt`, fontWeight: 'bold', marginBottom: '4px' },
@@ -33,7 +56,16 @@ export function ResumePreview() {
     bold: { fontWeight: 'bold', fontSize: `${fontSize.subheader}pt` },
     italic: { fontStyle: 'italic', fontSize: `${fontSize.subheader}pt` },
     bullets: { marginLeft: '18px', marginTop: '4px', listStyleType: 'disc' },
-    bullet: { marginBottom: `${bulletSpacing}px` }
+    bullet: { marginBottom: `${bulletSpacing}px` },
+    overflowIndicator: {
+      position: 'absolute',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      height: '40px',
+      background: 'linear-gradient(transparent, rgba(239, 68, 68, 0.2))',
+      display: isOverflowing ? 'block' : 'none',
+    }
   };
 
   const renderSection = id => {
@@ -159,31 +191,34 @@ export function ResumePreview() {
   ].filter(Boolean);
 
   return (
-    <div id="resume-content" style={styles.page}>
-      <div style={styles.header}>
-        <div style={styles.name}>{personal_info?.name}</div>
-        <div style={styles.contact}>
-          {[personal_info?.email, personal_info?.phone, personal_info?.location].filter(Boolean).join(' | ')}
-        </div>
-        {links.length > 0 && (
+    <div ref={containerRef} style={styles.page}>
+      <div ref={contentRef} style={styles.content}>
+        <div style={styles.header}>
+          <div style={styles.name}>{personal_info?.name}</div>
           <div style={styles.contact}>
-            {links.map((l, i) => (
-              <span key={l.label}>
-                {i > 0 && ' | '}
-                <a 
-                  href={l.url.startsWith('http') ? l.url : `https://${l.url}`} 
-                  target="_blank" 
-                  rel="noreferrer" 
-                  style={{ color: colors.text, textDecoration: 'underline' }}
-                >
-                  {l.label}
-                </a>
-              </span>
-            ))}
+            {[personal_info?.email, personal_info?.phone, personal_info?.location].filter(Boolean).join(' | ')}
           </div>
-        )}
+          {links.length > 0 && (
+            <div style={styles.contact}>
+              {links.map((l, i) => (
+                <span key={l.label}>
+                  {i > 0 && ' | '}
+                  <a 
+                    href={l.url.startsWith('http') ? l.url : `https://${l.url}`} 
+                    target="_blank" 
+                    rel="noreferrer" 
+                    style={{ color: colors.text, textDecoration: 'underline' }}
+                  >
+                    {l.label}
+                  </a>
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+        {sectionOrder.map(renderSection)}
       </div>
-      {sectionOrder.map(renderSection)}
+      <div style={styles.overflowIndicator} />
     </div>
   );
 }
