@@ -7,6 +7,7 @@ import { PreviewModal } from '../modals/PreviewModal';
 import { Button } from '../shared/Button';
 import { Select } from '../shared/Select';
 import { useResume } from '../../contexts/ResumeContext';
+import { useConfig } from '../../contexts/ConfigContext';
 import { useUI } from '../../contexts/UIContext';
 import { RESUME_STATUSES } from '../../utils/constants';
 import { downloadJson, generateFilename } from '../../utils/exportUtils';
@@ -21,6 +22,7 @@ export function ResumesPage() {
     duplicateResume, 
     updateStatus 
   } = useResume();
+  const { loadConfig } = useConfig();
   const { setActiveTab, showToast } = useUI();
   
   const [loading, setLocalLoading] = useState(true);
@@ -67,7 +69,7 @@ export function ResumesPage() {
 
   // Edit goes to builder
   const handleEdit = (resume) => {
-    loadResume(resume.id);
+    loadResume(resume.id, loadConfig);
     setActiveTab('builder');
   };
 

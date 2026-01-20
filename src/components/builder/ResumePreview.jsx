@@ -5,7 +5,7 @@ import { flattenSkills } from '../../utils/schemaTransform';
 
 export function ResumePreview({ onFillPercentChange }) {
   const { currentResume } = useResume();
-  const { config, sectionOrder, getPageDimensions } = useConfig();
+  const { config, sectionOrder, sectionVisibility, getPageDimensions } = useConfig();
   const contentRef = useRef(null);
   const containerRef = useRef(null);
   const [isOverflowing, setIsOverflowing] = useState(false);
@@ -216,7 +216,7 @@ export function ResumePreview({ onFillPercentChange }) {
             </div>
           )}
         </div>
-        {sectionOrder.map(renderSection)}
+        {sectionOrder.filter(id => sectionVisibility[id]).map(renderSection)}
       </div>
       <div style={styles.overflowIndicator} />
     </div>

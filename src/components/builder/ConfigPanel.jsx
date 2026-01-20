@@ -1,10 +1,15 @@
-import React from 'react';
-import { RotateCcw } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { RotateCcw, GripHorizontal } from 'lucide-react';
 import { useConfig } from '../../contexts/ConfigContext';
+import { useResume } from '../../contexts/ResumeContext';
 import { FONT_OPTIONS, PAGE_SIZES } from '../../utils/constants';
+import { MetricsPanel } from './MetricsPanel';
 
-export function ConfigPanel() {
+export function ConfigPanel({ fillPercent = 0 }) {
   const { config, updateConfig, resetConfig } = useConfig();
+  const { currentResume } = useResume();
+  const [metricsHeight, setMetricsHeight] = useState(250);
+  const [isDragging, setIsDragging] = useState(false);
 
   const Slider = ({ label, path, min, max, step = 1, unit = '' }) => {
     const value = path.split('.').reduce((o, k) => o[k], config);
@@ -48,24 +53,59 @@ export function ConfigPanel() {
     </h3>
   );
 
+  // Handle vertical resize
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      if (!isDragging) return;
+      const newHeight = window.innerHeight - e.clientY;
+      setMetricsHeight(Math.max(150, Math.min(500, newHeight)));
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+    };
+
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = 'row-resize';
+      document.body.style.userSelect = 'none';
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+  }, [isDragging]);
+
   return (
     <div className="h-full flex flex-col bg-white">
-      <div className="flex-1 overflow-y-auto p-4">
+      {/* Settings Section - Scrollable */}
+      <div className="flex-1 overflow-y-auto p-4" style={{ minHeight: '200px' }}>
         {/* Page Size */}
         <SectionHeader>Page Size</SectionHeader>
-        <div className="grid grid-cols-2 gap-2 mb-4">
+        <div className="space-y-2 mb-4">
           {Object.entries(PAGE_SIZES).map(([key, size]) => (
             <button
               key={key}
               onClick={() => updateConfig('pageSize', key)}
-              className={`p-3 rounded-lg border-2 text-center transition-all ${
+              className={`w-full p-3 rounded-lg border-2 text-left transition-all ${
                 config.pageSize === key 
-                  ? 'border-blue-500 bg-blue-50 text-blue-700' 
+                  ? 'border-blue-500 bg-blue-50' 
                   : 'border-gray-200 hover:border-gray-300'
               }`}
             >
-              <div className="text-sm font-medium">{size.name}</div>
-              <div className="text-xs text-gray-500">{size.width}" × {size.height}"</div>
+              <div className="flex items-center justify-between">
+                <span className={`font-medium ${config.pageSize === key ? 'text-blue-700' : 'text-gray-900'}`}>
+                  {size.name}
+                </span>
+                {config.pageSize === key && (
+                  <span className="text-xs bg-blue-600 text-white px-2 py-0.5 rounded">Selected</span>
+                )}
+              </div>
+              <div className="text-xs text-gray-500 mt-1">{size.dimensions}</div>
             </button>
           ))}
         </div>
@@ -127,6 +167,19 @@ export function ConfigPanel() {
           <RotateCcw size={14} />
           Reset to Defaults
         </button>
+      </div>
+
+      {/* Resize Handle */}
+      <div 
+        onMouseDown={() => setIsDragging(true)}
+        className={`flex-shrink-0 h-1.5 bg-gray-200 hover:bg-blue-400 cursor-row-resize transition-colors flex items-center justify-center ${isDragging ? 'bg-blue-500' : ''}`}
+      >
+        <GripHorizontal size={16} className="text-gray-400" />
+      </div>
+
+      {/* Metrics Section - Fixed Height, Resizable */}
+      <div style={{ height: `${metricsHeight}px`, minHeight: '150px' }} className="flex-shrink-0 overflow-auto">
+        <MetricsPanel resume={currentResume} config={config} fillPercent={fillPercent} />
       </div>
     </div>
   );

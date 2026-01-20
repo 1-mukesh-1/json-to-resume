@@ -1,7 +1,9 @@
-import React from 'react';
-import { AlertTriangle, CheckCircle, AlertCircle } from 'lucide-react';
+import React, { useState } from 'react';
+import { AlertTriangle, CheckCircle, AlertCircle, Wand2 } from 'lucide-react';
 
 export function PageFillIndicator({ fillPercent, onAutoFit }) {
+  const [isAnimating, setIsAnimating] = useState(false);
+
   const getStatus = () => {
     if (fillPercent < 50) return { 
       color: 'text-blue-600', 
@@ -33,6 +35,13 @@ export function PageFillIndicator({ fillPercent, onAutoFit }) {
     };
   };
 
+  const handleAutoFit = () => {
+    setIsAnimating(true);
+    onAutoFit();
+    // Reset animation after a short delay
+    setTimeout(() => setIsAnimating(false), 300);
+  };
+
   const status = getStatus();
   const Icon = status.icon;
   const displayPercent = Math.min(fillPercent, 120);
@@ -61,9 +70,11 @@ export function PageFillIndicator({ fillPercent, onAutoFit }) {
 
       {fillPercent > 100 && (
         <button
-          onClick={onAutoFit}
-          className="px-2 py-1 text-xs font-medium bg-white rounded border border-red-300 text-red-600 hover:bg-red-50 whitespace-nowrap"
+          onClick={handleAutoFit}
+          className={`px-3 py-1.5 text-xs font-medium bg-white rounded-lg border border-red-300 text-red-600 hover:bg-red-50 whitespace-nowrap flex items-center gap-1.5 transition-all ${isAnimating ? 'scale-95' : ''}`}
+          title="Automatically reduce font sizes and spacing to fit content on one page"
         >
+          <Wand2 size={14} className={isAnimating ? 'animate-pulse' : ''} />
           Auto-fit
         </button>
       )}

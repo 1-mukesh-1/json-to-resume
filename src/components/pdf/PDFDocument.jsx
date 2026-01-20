@@ -95,7 +95,7 @@ const BulletList = ({ items, styles }) => (
 );
 
 // Main PDF Document component
-export const ResumePDFDocument = ({ data, config, sectionOrder }) => {
+export const ResumePDFDocument = ({ data, config, sectionOrder, sectionVisibility = {} }) => {
   const pageSize = PAGE_SIZES[config.pageSize] || PAGE_SIZES.letter;
   const styles = createStyles(config, pageSize);
   
@@ -244,22 +244,22 @@ export const ResumePDFDocument = ({ data, config, sectionOrder }) => {
         </View>
 
         {/* Sections */}
-        {sectionOrder.map(renderSection)}
+        {sectionOrder.filter(id => sectionVisibility[id] !== false).map(renderSection)}
       </Page>
     </Document>
   );
 };
 
 // Generate PDF blob for download
-export const generatePDFBlob = async (data, config, sectionOrder) => {
-  const doc = <ResumePDFDocument data={data} config={config} sectionOrder={sectionOrder} />;
+export const generatePDFBlob = async (data, config, sectionOrder, sectionVisibility) => {
+  const doc = <ResumePDFDocument data={data} config={config} sectionOrder={sectionOrder} sectionVisibility={sectionVisibility} />;
   const blob = await pdf(doc).toBlob();
   return blob;
 };
 
 // Download PDF
-export const downloadPDF = async (data, config, sectionOrder, filename = 'resume.pdf') => {
-  const blob = await generatePDFBlob(data, config, sectionOrder);
+export const downloadPDF = async (data, config, sectionOrder, sectionVisibility, filename = 'resume.pdf') => {
+  const blob = await generatePDFBlob(data, config, sectionOrder, sectionVisibility);
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;

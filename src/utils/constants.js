@@ -13,21 +13,44 @@ export const DEFAULT_SECTION_ORDER = [
   'summary', 'technical_skills', 'work_experience', 'projects', 'education', 'achievements'
 ];
 
+export const DEFAULT_SECTION_VISIBILITY = {
+  summary: true,
+  technical_skills: true,
+  work_experience: true,
+  projects: true,
+  education: true,
+  achievements: true
+};
+
+export const SECTION_LABELS = {
+  summary: 'Professional Summary',
+  technical_skills: 'Technical Skills',
+  work_experience: 'Work Experience',
+  projects: 'Projects',
+  education: 'Education',
+  achievements: 'Achievements'
+};
+
 // Page size configurations
+// Standard paper sizes verified:
+// US Letter: 8.5" × 11" (215.9mm × 279.4mm) - wider, shorter
+// A4: 8.27" × 11.69" (210mm × 297mm) - narrower, taller
 export const PAGE_SIZES = {
   letter: {
     name: 'US Letter',
-    width: 8.5,    // inches
-    height: 11,    // inches
-    widthPt: 612,  // points (72 per inch)
-    heightPt: 792,
+    width: 8.5,
+    height: 11,
+    widthPt: 612,   // 8.5 × 72
+    heightPt: 792,  // 11 × 72
+    dimensions: '8.5" × 11" (216 × 279 mm)'
   },
   a4: {
     name: 'A4',
-    width: 8.27,   // inches (210mm)
-    height: 11.69, // inches (297mm)
-    widthPt: 595,
-    heightPt: 842,
+    width: 8.27,
+    height: 11.69,
+    widthPt: 595,   // 8.27 × 72
+    heightPt: 842,  // 11.69 × 72
+    dimensions: '210 × 297 mm (8.3" × 11.7")'
   }
 };
 

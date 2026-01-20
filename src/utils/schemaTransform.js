@@ -91,6 +91,27 @@ export function flattenSkills(technicalSkills) {
 }
 
 /**
+ * Extract resume configuration to save with resume data
+ */
+export function extractResumeConfig(config, sectionOrder, sectionVisibility) {
+  return {
+    settings: config,
+    sectionOrder,
+    sectionVisibility
+  };
+}
+
+/**
+ * Inject resume configuration back into the resume data for saving
+ */
+export function injectResumeConfig(resumeData, config, sectionOrder, sectionVisibility) {
+  return {
+    ...resumeData,
+    resume_config: extractResumeConfig(config, sectionOrder, sectionVisibility)
+  };
+}
+
+/**
  * Validate that JSON has required job_metadata for saving
  */
 export function validateForSave(data) {

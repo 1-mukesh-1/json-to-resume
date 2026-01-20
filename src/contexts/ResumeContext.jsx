@@ -1,6 +1,6 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react';
 import * as resumeService from '../services/resumeService';
-import { transformResumeData, validateForSave } from '../utils/schemaTransform';
+import { transformResumeData, validateForSave, injectResumeConfig } from '../utils/schemaTransform';
 
 const ResumeContext = createContext();
 
@@ -61,6 +61,9 @@ const SAMPLE_DATA = {
   achievements: ["Speaker at React Summit 2023", "Winner of 2022 Global Hackathon"]
 };
 
+// Autosave delay in milliseconds
+const AUTOSAVE_DELAY = 3000;
+
 export function ResumeProvider({ children }) {
   const [currentResume, setCurrentResume] = useState(SAMPLE_DATA);
   const [currentResumeId, setCurrentResumeId] = useState(null);
@@ -68,6 +71,92 @@ export function ResumeProvider({ children }) {
   const [jsonInput, setJsonInput] = useState(JSON.stringify(SAMPLE_DATA, null, 2));
   const [jsonError, setJsonError] = useState('');
   const [isDirty, setIsDirty] = useState(false);
+  const [autoSaveStatus, setAutoSaveStatus] = useState('idle'); // 'idle' | 'saving' | 'saved' | 'error'
+  
+  // Refs for autosave
+  const autosaveTimeoutRef = useRef(null);
+  const currentResumeRef = useRef(currentResume);
+  const currentResumeIdRef = useRef(currentResumeId);
+  
+  // Callback to get current config (set by BuilderPage)
+  const getConfigRef = useRef(null);
+  
+  // Keep refs in sync
+  useEffect(() => {
+    currentResumeRef.current = currentResume;
+  }, [currentResume]);
+  
+  useEffect(() => {
+    currentResumeIdRef.current = currentResumeId;
+  }, [currentResumeId]);
+
+  // Set config getter callback
+  const setConfigGetter = useCallback((getter) => {
+    getConfigRef.current = getter;
+  }, []);
+
+  // Autosave function
+  const performAutosave = useCallback(async () => {
+    const resume = currentResumeRef.current;
+    const resumeId = currentResumeIdRef.current;
+    
+    const validation = validateForSave(resume);
+    if (!validation.valid) {
+      // Don't autosave if validation fails
+      return;
+    }
+
+    // Inject config if available
+    let dataToSave = resume;
+    if (getConfigRef.current) {
+      const { config, sectionOrder, sectionVisibility } = getConfigRef.current();
+      dataToSave = injectResumeConfig(resume, config, sectionOrder, sectionVisibility);
+    }
+
+    setAutoSaveStatus('saving');
+    
+    try {
+      let result;
+      if (resumeId) {
+        result = await resumeService.updateResume(resumeId, dataToSave);
+      } else {
+        result = await resumeService.createResume(dataToSave);
+        setCurrentResumeId(result.id);
+      }
+      setIsDirty(false);
+      setAutoSaveStatus('saved');
+      
+      // Reset to idle after showing "saved" for a moment
+      setTimeout(() => setAutoSaveStatus('idle'), 2000);
+    } catch (err) {
+      console.error('Autosave failed:', err);
+      setAutoSaveStatus('error');
+      // Reset to idle after showing error
+      setTimeout(() => setAutoSaveStatus('idle'), 3000);
+    }
+  }, []);
+
+  // Schedule autosave when content changes
+  const scheduleAutosave = useCallback(() => {
+    // Clear any existing timeout
+    if (autosaveTimeoutRef.current) {
+      clearTimeout(autosaveTimeoutRef.current);
+    }
+    
+    // Schedule new autosave
+    autosaveTimeoutRef.current = setTimeout(() => {
+      performAutosave();
+    }, AUTOSAVE_DELAY);
+  }, [performAutosave]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (autosaveTimeoutRef.current) {
+        clearTimeout(autosaveTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Parse and transform JSON input
   const handleJsonChange = useCallback((value) => {
@@ -78,17 +167,19 @@ export function ResumeProvider({ children }) {
       setCurrentResume(transformed);
       setJsonError('');
       setIsDirty(true);
+      scheduleAutosave();
     } catch (err) {
       setJsonError('Invalid JSON');
     }
-  }, []);
+  }, [scheduleAutosave]);
 
   // Update resume data from visual editor
   const handleDataChange = useCallback((data) => {
     setCurrentResume(data);
     setJsonInput(JSON.stringify(data, null, 2));
     setIsDirty(true);
-  }, []);
+    scheduleAutosave();
+  }, [scheduleAutosave]);
 
   // Load all resumes from Supabase
   const loadResumes = useCallback(async (filters = {}) => {
@@ -97,32 +188,58 @@ export function ResumeProvider({ children }) {
     return data;
   }, []);
 
-  // Load single resume for editing
-  const loadResume = useCallback(async (id) => {
+  // Load single resume for editing (callback to load config provided externally)
+  const loadResume = useCallback(async (id, loadConfigCallback) => {
+    // Cancel any pending autosave
+    if (autosaveTimeoutRef.current) {
+      clearTimeout(autosaveTimeoutRef.current);
+    }
+    
     const data = await resumeService.getResumeById(id);
     const transformed = transformResumeData(data.resume_data);
     setCurrentResume(transformed);
     setJsonInput(JSON.stringify(transformed, null, 2));
     setCurrentResumeId(data.id);
     setIsDirty(false);
+    setAutoSaveStatus('idle');
+    
+    // Load config if available
+    if (loadConfigCallback && data.resume_data?.resume_config) {
+      loadConfigCallback(data.resume_data.resume_config);
+    }
+    
     return data;
   }, []);
 
-  // Save current resume
+  // Save current resume (manual save)
   const saveResume = useCallback(async () => {
+    // Cancel any pending autosave
+    if (autosaveTimeoutRef.current) {
+      clearTimeout(autosaveTimeoutRef.current);
+    }
+    
     const validation = validateForSave(currentResume);
     if (!validation.valid) {
       throw new Error(validation.errors.join(', '));
     }
 
+    // Inject config if available
+    let dataToSave = currentResume;
+    if (getConfigRef.current) {
+      const { config, sectionOrder, sectionVisibility } = getConfigRef.current();
+      dataToSave = injectResumeConfig(currentResume, config, sectionOrder, sectionVisibility);
+    }
+
     let result;
     if (currentResumeId) {
-      result = await resumeService.updateResume(currentResumeId, currentResume);
+      result = await resumeService.updateResume(currentResumeId, dataToSave);
     } else {
-      result = await resumeService.createResume(currentResume);
+      result = await resumeService.createResume(dataToSave);
       setCurrentResumeId(result.id);
     }
     setIsDirty(false);
+    setAutoSaveStatus('saved');
+    setTimeout(() => setAutoSaveStatus('idle'), 2000);
     return result;
   }, [currentResume, currentResumeId]);
 
@@ -131,9 +248,14 @@ export function ResumeProvider({ children }) {
     await resumeService.deleteResume(id);
     setResumeList(prev => prev.filter(r => r.id !== id));
     if (currentResumeId === id) {
+      // Cancel any pending autosave
+      if (autosaveTimeoutRef.current) {
+        clearTimeout(autosaveTimeoutRef.current);
+      }
       setCurrentResumeId(null);
       setCurrentResume(SAMPLE_DATA);
       setJsonInput(JSON.stringify(SAMPLE_DATA, null, 2));
+      setIsDirty(false);
     }
   }, [currentResumeId]);
 
@@ -154,10 +276,16 @@ export function ResumeProvider({ children }) {
 
   // Create new resume
   const newResume = useCallback(() => {
+    // Cancel any pending autosave
+    if (autosaveTimeoutRef.current) {
+      clearTimeout(autosaveTimeoutRef.current);
+    }
+    
     setCurrentResume(SAMPLE_DATA);
     setJsonInput(JSON.stringify(SAMPLE_DATA, null, 2));
     setCurrentResumeId(null);
     setIsDirty(false);
+    setAutoSaveStatus('idle');
   }, []);
 
   return (
@@ -167,6 +295,7 @@ export function ResumeProvider({ children }) {
       resumeList, setResumeList,
       jsonInput, jsonError,
       isDirty,
+      autoSaveStatus,
       handleJsonChange,
       handleDataChange,
       loadResumes,
@@ -175,7 +304,8 @@ export function ResumeProvider({ children }) {
       deleteResume,
       duplicateResume,
       updateStatus,
-      newResume
+      newResume,
+      setConfigGetter
     }}>
       {children}
     </ResumeContext.Provider>

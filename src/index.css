@@ -34,19 +34,6 @@ html {
   background: #a1a1a1;
 }
 
-/* Panel resize handle styles */
-[data-panel-resize-handle-id] {
-  transition: background-color 0.15s ease;
-}
-
-[data-panel-resize-handle-id]:hover {
-  background-color: #3b82f6 !important;
-}
-
-[data-panel-resize-handle-id][data-resize-handle-active] {
-  background-color: #2563eb !important;
-}
-
 /* Print styles */
 @media print {
   body * {
@@ -78,4 +65,9 @@ html {
   input, select, textarea, button {
     font-size: 16px; /* Prevents iOS zoom on focus */
   }
+}
+
+/* Prevent text selection during resize */
+.resize-active {
+  user-select: none;
 }
